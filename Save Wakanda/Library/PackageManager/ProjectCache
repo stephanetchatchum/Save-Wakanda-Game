@@ -5,16 +5,16 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639054118246807438
-    m_Hash: 2901082411
+      ticks: 639054662740331329
+    m_Hash: 1135890285
   m_LockFileStatus:
     m_FilePath: C:/Users/GOLD COMPUTERS/Desktop/Save-Wakanda-Game/Save Wakanda/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639054118246923101
-    m_Hash: 2692667186
+      ticks: 639054662740341673
+    m_Hash: 615645776
 m_EmbeddedPackageManifests:
   m_ManifestsStatus: {}
 m_LocalPackages:
