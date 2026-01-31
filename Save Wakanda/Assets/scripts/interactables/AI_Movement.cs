@@ -20,6 +20,9 @@ public class AI_Movement : MonoBehaviour
     int WalkDirection;
  
     public bool isWalking;
+    public bool isTalking;
+    public float talkTime = 8f;
+    public float talkCounter;
  
     // Start is called before the first frame update
     void Start()
@@ -33,6 +36,7 @@ public class AI_Movement : MonoBehaviour
  
         waitCounter = waitTime;
         walkCounter = walkTime;
+        talkCounter = talkTime;
  
         ChooseDirection();
     }
@@ -80,6 +84,20 @@ public class AI_Movement : MonoBehaviour
  
  
         }
+        else if (isTalking)
+        {
+            animator.SetBool("isTalking", true);
+ 
+            talkCounter -= Time.deltaTime;
+ 
+            if (talkCounter <= 0)
+            {
+                isTalking = false;
+                animator.SetBool("isTalking", false);
+                // Go back to walking
+                ChooseDirection();
+            }
+        }
         else
         {
  
@@ -99,5 +117,22 @@ public class AI_Movement : MonoBehaviour
  
         isWalking = true;
         walkCounter = walkTime;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("NPC") && !isTalking)
+        {
+            // Stop walking if currently walking
+            if (isWalking)
+            {
+                isWalking = false;
+                animator.SetBool("isWalking", false);
+            }
+            // Start talking
+            isTalking = true;
+            talkCounter = talkTime;
+            animator.SetBool("isTalking", true);
+        }
     }
 }
