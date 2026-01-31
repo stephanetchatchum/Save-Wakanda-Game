@@ -137,7 +137,14 @@ namespace SlidingPuzzle
             // Award the mask
             maskRewardSystem.AwardMask();
             
-            // Close puzzle UI after a SHORT delay (was 2f, now 1f so player gets control faster)
+            // Close UI AFTER the full sequence finishes:
+            // timeBeforeExplosion (2s) + explosionDuration (1s) + ghostDestroyDelay (3s) + small buffer
+            float totalSequenceTime = maskRewardSystem.timeBeforeExplosion 
+                                    + maskRewardSystem.explosionDuration 
+                                    + maskRewardSystem.currentConfig.ghostDestroyDelay 
+                                    + 0.5f;
+            
+            Debug.Log($"Ghost sequence will take {totalSequenceTime}s — closing UI after that");
             Invoke(nameof(ClosePuzzleUI), 1f);
         }
         
@@ -161,10 +168,10 @@ namespace SlidingPuzzle
                 Debug.Log("Player controller re-enabled");
             }
             
-            // Restore cursor - back to gameplay mode
+            /* Restore cursor - back to gameplay mode
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-            Debug.Log("Cursor locked and hidden");
+            Debug.Log("Cursor locked and hidden");*/
             
             // Restore camera
             if (puzzleCamera != null && mainCamera != null)
