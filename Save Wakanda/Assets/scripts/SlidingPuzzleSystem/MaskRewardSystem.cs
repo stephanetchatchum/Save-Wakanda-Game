@@ -172,17 +172,28 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
-        /// Handle the ghost defeat animation and destruction
+        /// Handle the ghost defeat — dissolve fade, no Animator needed
         /// </summary>
         private IEnumerator DefeatGhostSequence()
         {
-            if (currentConfig.ghostObject == null)
+            // Try to find ghost if not assigned
+            GameObject ghost = currentConfig.ghostObject;
+            
+            if (ghost == null && !string.IsNullOrEmpty(currentConfig.ghostTag))
             {
-                Debug.LogWarning("No ghost object assigned!");
+                ghost = GameObject.FindGameObjectWithTag(currentConfig.ghostTag);
+                Debug.Log($"Ghost not assigned in config, searching by tag '{currentConfig.ghostTag}'...");
+            }
+            
+            if (ghost == null)
+            {
+                Debug.LogWarning("No ghost object found! Make sure:");
+                Debug.LogWarning("1. Ghost is assigned in PuzzleConfiguration, OR");
+                Debug.LogWarning("2. Ghost has the '" + currentConfig.ghostTag + "' tag");
                 yield break;
             }
             
-            Debug.Log("Ghost defeat sequence starting...");
+            Debug.Log($"Ghost defeat sequence starting for: {ghost.name}");
             
             // Play defeat sound
             if (ghostDefeatSound != null && audioSource != null)
@@ -190,28 +201,61 @@ namespace SlidingPuzzle
                 audioSource.PlayOneShot(ghostDefeatSound);
             }
             
-            // Trigger defeat animation
-            Animator ghostAnimator = currentConfig.ghostObject.GetComponent<Animator>();
-            if (ghostAnimator != null && !string.IsNullOrEmpty(currentConfig.defeatAnimationTrigger))
+            // Grab every renderer on the ghost (handles multi-mesh ghosts)
+            Renderer[] renderers = ghost.GetComponentsInChildren<Renderer>();
+            
+            // Duplicate and prepare every material for transparency
+            for (int i = 0; i < renderers.Length; i++)
             {
-                ghostAnimator.SetTrigger(currentConfig.defeatAnimationTrigger);
-                Debug.Log($"Ghost defeat animation triggered: {currentConfig.defeatAnimationTrigger}");
+                Material[] newMats = new Material[renderers[i].materials.Length];
+                for (int m = 0; m < renderers[i].materials.Length; m++)
+                {
+                    // Duplicate so we don't modify the shared/original material
+                    newMats[m] = new Material(renderers[i].materials[m]);
+                    
+                    // Force the material into Transparent render mode
+                    newMats[m].SetFloat("_Mode", 2f);
+                    newMats[m].SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    newMats[m].SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    newMats[m].SetInt("_ZWrite", 0);
+                    newMats[m].renderQueue = 3000;
+                    newMats[m].DisableKeyword("_ALPHATEST_ON");
+                    newMats[m].EnableKeyword("_ALPHABLEND_ON");
+                }
+                renderers[i].materials = newMats;
             }
             
-            // Wait for animation to play
-            yield return new WaitForSeconds(currentConfig.ghostDestroyDelay);
+            // Dissolve: fade alpha from 1 down to 0 over ghostDestroyDelay seconds
+            float dissolveTime = currentConfig.ghostDestroyDelay;
+            float elapsed = 0f;
             
-            // Destroy or disable the ghost
-            if (currentConfig.ghostObject != null)
+            while (elapsed < dissolveTime)
             {
-                Destroy(currentConfig.ghostObject);
-                Debug.Log("Ghost defeated and destroyed!");
+                elapsed += Time.deltaTime;
+                float alpha = 1f - (elapsed / dissolveTime);
                 
-                // Increment ghost counter
-                if (ghostCounter != null)
+                // Apply the new alpha to every material on every renderer
+                for (int i = 0; i < renderers.Length; i++)
                 {
-                    ghostCounter.OnGhostDefeated();
+                    Material[] mats = renderers[i].materials;
+                    for (int m = 0; m < mats.Length; m++)
+                    {
+                        Color c = mats[m].color;
+                        c.a = alpha;
+                        mats[m].color = c;
+                    }
                 }
+                
+                yield return null; // Wait one frame, then loop
+            }
+            
+            // Ghost is fully transparent now — destroy it
+            Destroy(ghost);
+            Debug.Log("Ghost dissolved and destroyed!");
+            
+            if (ghostCounter != null)
+            {
+                ghostCounter.OnGhostDefeated();
             }
         }
         

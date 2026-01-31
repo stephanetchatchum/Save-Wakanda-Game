@@ -22,8 +22,11 @@ namespace SlidingPuzzle
         public GameObject maskPrefab;
         
         [Header("Ghost Defeat")]
-        [Tooltip("Reference to the ghost GameObject (assigned at runtime or in scene)")]
+        [Tooltip("Reference to the ghost GameObject - leave empty to find by tag 'Ghost' at runtime")]
         public GameObject ghostObject;
+        
+        [Tooltip("Tag to find ghost if not manually assigned")]
+        public string ghostTag = "Ghost";
         
         [Tooltip("Animator parameter name to trigger defeat animation")]
         public string defeatAnimationTrigger = "Defeat";
