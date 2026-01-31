@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d7a5e4cf406cc947a214da9f495ca98, type: 3}
   m_Name: Puzzle_01
   m_EditorClassIdentifier: 
-  puzzleImage: {fileID: 2800000, guid: 953210cfdbb65f8478434c18d6665fe8, type: 3}
+  puzzleImage: {fileID: 2800000, guid: 68f6cf72f85b8c243a1ff3f9e86b7449, type: 3}
   gridSize: 3
   maskPrefab: {fileID: 7964027225119588925, guid: a2f6f6b0e1a1e6941ba70cb635426be6, type: 3}
   ghostObject: {fileID: 649658587638551799, guid: 3c197f5bcd36a664b94f8fba1e5d41e9, type: 3}

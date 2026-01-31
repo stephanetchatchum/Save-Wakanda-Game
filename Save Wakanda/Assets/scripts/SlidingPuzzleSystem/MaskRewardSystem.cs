@@ -10,6 +10,7 @@ namespace SlidingPuzzle
     {
         [Header("References")]
         public PuzzleConfiguration currentConfig;
+        public GhostCounter ghostCounter;
         
         [Header("Spawn Settings")]
         [Tooltip("The player transform - mask will spawn above them")]
@@ -23,8 +24,17 @@ namespace SlidingPuzzle
         
         [Header("Effects (Optional)")]
         public ParticleSystem spawnEffect;
+        public ParticleSystem explosionEffect;
         public AudioClip maskSpawnSound;
+        public AudioClip explosionSound;
         public AudioClip ghostDefeatSound;
+        
+        [Header("Timing")]
+        [Tooltip("Time before mask explodes after spawning")]
+        public float timeBeforeExplosion = 2f;
+        
+        [Tooltip("Time explosion effect plays before ghost defeat")]
+        public float explosionDuration = 1f;
         
         private AudioSource audioSource;
         private GameObject spawnedMask;
@@ -101,8 +111,64 @@ namespace SlidingPuzzle
                 audioSource.PlayOneShot(maskSpawnSound);
             }
             
-            // Trigger ghost defeat sequence
+            // Trigger explosion sequence after delay
+            StartCoroutine(MaskExplosionSequence(spawnPos));
+        }
+        
+        /// <summary>
+        /// Handle mask explosion and ghost defeat
+        /// </summary>
+        private IEnumerator MaskExplosionSequence(Vector3 maskPosition)
+        {
+            // Wait before explosion
+            yield return new WaitForSeconds(timeBeforeExplosion);
+            
+            Debug.Log("Mask exploding!");
+            
+            // Play explosion effect
+            if (explosionEffect != null)
+            {
+                explosionEffect.transform.position = maskPosition;
+                explosionEffect.Play();
+            }
+            
+            // Play explosion sound
+            if (explosionSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(explosionSound);
+            }
+            
+            // Make mask disappear/destroy with explosion
+            if (spawnedMask != null)
+            {
+                // Optional: Add a quick scale-down animation
+                StartCoroutine(ScaleDownAndDestroy(spawnedMask, 0.3f));
+            }
+            
+            // Wait for explosion effect to play
+            yield return new WaitForSeconds(explosionDuration);
+            
+            // Now trigger ghost defeat
             StartCoroutine(DefeatGhostSequence());
+        }
+        
+        /// <summary>
+        /// Scale down and destroy object
+        /// </summary>
+        private IEnumerator ScaleDownAndDestroy(GameObject obj, float duration)
+        {
+            Vector3 originalScale = obj.transform.localScale;
+            float elapsed = 0f;
+            
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                obj.transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, t);
+                yield return null;
+            }
+            
+            Destroy(obj);
         }
         
         /// <summary>
@@ -110,16 +176,13 @@ namespace SlidingPuzzle
         /// </summary>
         private IEnumerator DefeatGhostSequence()
         {
-            // Small delay for dramatic effect
-            yield return new WaitForSeconds(0.5f);
-            
             if (currentConfig.ghostObject == null)
             {
                 Debug.LogWarning("No ghost object assigned!");
                 yield break;
             }
             
-            Debug.Log("Starting ghost defeat sequence...");
+            Debug.Log("Ghost defeat sequence starting...");
             
             // Play defeat sound
             if (ghostDefeatSound != null && audioSource != null)
@@ -143,6 +206,12 @@ namespace SlidingPuzzle
             {
                 Destroy(currentConfig.ghostObject);
                 Debug.Log("Ghost defeated and destroyed!");
+                
+                // Increment ghost counter
+                if (ghostCounter != null)
+                {
+                    ghostCounter.OnGhostDefeated();
+                }
             }
         }
         

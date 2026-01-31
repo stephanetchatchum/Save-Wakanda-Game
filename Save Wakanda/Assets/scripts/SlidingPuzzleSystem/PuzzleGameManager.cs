@@ -17,6 +17,7 @@ namespace SlidingPuzzle
         public PuzzleManager puzzleManager;
         public PuzzleUIController puzzleUIController;
         public MaskRewardSystem maskRewardSystem;
+        public GhostCounter ghostCounter;
         
         [Header("UI")]
         [Tooltip("The canvas/panel that contains the puzzle UI")]
@@ -56,6 +57,12 @@ namespace SlidingPuzzle
             
             // Store main camera
             mainCamera = Camera.main;
+            
+            // Setup ghost counter
+            if (ghostCounter != null)
+            {
+                ghostCounter.SetTotalGhosts(puzzleConfigs.Count);
+            }
             
             // Validate setup
             ValidateSetup();

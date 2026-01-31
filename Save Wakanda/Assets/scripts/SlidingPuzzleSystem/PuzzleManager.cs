@@ -22,9 +22,15 @@ namespace SlidingPuzzle
         private Vector2Int emptyTilePos;
         private int gridSize;
         
+        // Stats tracking
+        private int moveCount = 0;
+        private float startTime = 0f;
+        private float solveTime = 0f;
+        
         // Events
         public System.Action OnPuzzleSolved;
         public System.Action<int[,]> OnTilesChanged;
+        public System.Action<int, float> OnStatsUpdated; // moveCount, elapsedTime
         
         private bool isPuzzleSolved = false;
         
@@ -32,6 +38,8 @@ namespace SlidingPuzzle
         public int[,] TileGrid => tileGrid;
         public Vector2Int EmptyTilePosition => emptyTilePos;
         public bool IsSolved => isPuzzleSolved;
+        public int MoveCount => moveCount;
+        public float ElapsedTime => isPuzzleSolved ? solveTime : (Time.time - startTime);
         
         void Update()
         {
@@ -39,6 +47,12 @@ namespace SlidingPuzzle
             {
                 Debug.Log("[Debug] Auto-solving puzzle!");
                 SolvePuzzle();
+            }
+            
+            // Update stats every frame while puzzle is active
+            if (!isPuzzleSolved && tileGrid != null)
+            {
+                OnStatsUpdated?.Invoke(moveCount, Time.time - startTime);
             }
         }
         
@@ -50,6 +64,11 @@ namespace SlidingPuzzle
             currentPuzzle = config;
             gridSize = config.gridSize;
             isPuzzleSolved = false;
+            
+            // Reset stats
+            moveCount = 0;
+            startTime = Time.time;
+            solveTime = 0f;
             
             // Create the grid
             tileGrid = new int[gridSize, gridSize];
@@ -100,14 +119,23 @@ namespace SlidingPuzzle
             tileGrid[x, y] = 0;
             emptyTilePos = new Vector2Int(x, y);
             
+            // Increment move counter
+            moveCount++;
+            
             OnTilesChanged?.Invoke(tileGrid);
             
             // Check for win condition
             if (CheckWinCondition())
             {
                 isPuzzleSolved = true;
-                Debug.Log("Puzzle Solved!");
+                solveTime = Time.time - startTime;
+                Debug.Log($"Puzzle Solved in {moveCount} moves and {solveTime:F2} seconds!");
                 OnPuzzleSolved?.Invoke();
+            }
+            else
+            {
+                // Update stats
+                OnStatsUpdated?.Invoke(moveCount, Time.time - startTime);
             }
             
             return true;

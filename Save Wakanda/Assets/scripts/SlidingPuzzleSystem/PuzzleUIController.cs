@@ -27,6 +27,16 @@ namespace SlidingPuzzle
         [Tooltip("Size of the puzzle area")]
         public float puzzleSize = 500f;
         
+        [Tooltip("Show numbers on tiles")]
+        public bool showTileNumbers = true;
+        
+        [Header("Stats Display")]
+        [Tooltip("Text element to show move count")]
+        public Text moveCountText;
+        
+        [Tooltip("Text element to show timer")]
+        public Text timerText;
+        
         [Header("Audio (Optional)")]
         public AudioClip tileClickSound;
         public AudioClip puzzleSolvedSound;
@@ -51,6 +61,7 @@ namespace SlidingPuzzle
             {
                 puzzleManager.OnTilesChanged += UpdateTileDisplay;
                 puzzleManager.OnPuzzleSolved += OnPuzzleSolved;
+                puzzleManager.OnStatsUpdated += UpdateStatsDisplay;
             }
         }
         
@@ -60,6 +71,7 @@ namespace SlidingPuzzle
             {
                 puzzleManager.OnTilesChanged -= UpdateTileDisplay;
                 puzzleManager.OnPuzzleSolved -= OnPuzzleSolved;
+                puzzleManager.OnStatsUpdated -= UpdateStatsDisplay;
             }
         }
         
@@ -158,13 +170,39 @@ namespace SlidingPuzzle
                         SetTileImage(tileImage, tileNumber - 1, gridSize);
                     }
                     
-                    // Optional: Set tile number text for debugging
+                    // Show tile number
                     Text tileText = tileObj.GetComponentInChildren<Text>();
                     if (tileText != null)
                     {
-                        tileText.text = tileNumber.ToString();
+                        if (showTileNumbers)
+                        {
+                            tileText.text = tileNumber.ToString();
+                            tileText.gameObject.SetActive(true);
+                        }
+                        else
+                        {
+                            tileText.gameObject.SetActive(false);
+                        }
                     }
                 }
+            }
+        }
+        
+        /// <summary>
+        /// Update the stats display (moves and time)
+        /// </summary>
+        private void UpdateStatsDisplay(int moves, float time)
+        {
+            if (moveCountText != null)
+            {
+                moveCountText.text = $"Moves: {moves}";
+            }
+            
+            if (timerText != null)
+            {
+                int minutes = Mathf.FloorToInt(time / 60f);
+                int seconds = Mathf.FloorToInt(time % 60f);
+                timerText.text = $"Time: {minutes:00}:{seconds:00}";
             }
         }
         
