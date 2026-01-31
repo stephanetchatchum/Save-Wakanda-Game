@@ -8,12 +8,14 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
     private Vector3 velocity;
+    private Animator animator;
 
     public float rotationSpeed = 180f;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
@@ -30,6 +32,13 @@ public class PlayerController : MonoBehaviour
 
         Vector3 move = transform.right * x + transform.forward * z;
         controller.Move(move * moveSpeed * Time.deltaTime);
+
+        // Set animator parameter for running
+        bool isMovingForward = z > 0.1f;
+        if (animator != null)
+        {
+            animator.SetBool("IsRunning", isMovingForward);
+        }
 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);

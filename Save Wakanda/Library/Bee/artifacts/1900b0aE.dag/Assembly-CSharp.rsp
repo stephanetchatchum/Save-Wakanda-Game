@@ -364,6 +364,7 @@
 "Assets/scripts/game/PuzzleManager.cs"
 "Assets/scripts/game/Tile.cs"
 "Assets/scripts/game/UIManager.cs"
+"Assets/scripts/interactables/AI_Movement.cs"
 "Assets/scripts/interactables/IInteractable.cs"
 "Assets/scripts/player/PlayerController.cs"
 "Assets/scripts/player/PlayerInteraction.cs"
