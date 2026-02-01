@@ -368,6 +368,7 @@
 "Assets/scripts/game/LevelCreator.cs"
 "Assets/scripts/game/LevelData.cs"
 "Assets/scripts/game/LevelManager.cs"
+"Assets/scripts/game/MainMenu.cs"
 "Assets/scripts/game/PuzzleManager.cs"
 "Assets/scripts/game/Tile.cs"
 "Assets/scripts/game/UIManager.cs"

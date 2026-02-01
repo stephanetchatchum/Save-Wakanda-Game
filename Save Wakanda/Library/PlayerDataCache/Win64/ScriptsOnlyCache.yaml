@@ -2,7 +2,9 @@ ScriptsOnlyBuild:
   usedScripts:
     Assembly-CSharp.dll:
     - AI_Movement
+    - MainMenu
     - PlayerController
+    - SlidingPuzzle.ChiefDialogue
     - SlidingPuzzle.GhostCounter
     - SlidingPuzzle.MaskRewardSystem
     - SlidingPuzzle.PuzzleConfiguration
@@ -29,10 +31,8 @@ ScriptsOnlyBuild:
     UnityEditor.Graphs.dll:
     - UnityEditor.Graphs.AnimationBlendTree.Graph
     - UnityEditor.Graphs.AnimationBlendTree.GraphGUI
-    - UnityEditor.Graphs.AnimationStateMachine.AnyStateNode
     - UnityEditor.Graphs.AnimationStateMachine.Graph
     - UnityEditor.Graphs.AnimationStateMachine.GraphGUI
-    - UnityEditor.Graphs.AnimationStateMachine.StateNode
     - UnityEditor.Graphs.AnimatorControllerTool
     UnityEditor.TestRunner.dll:
     - UnityEditor.TestTools.TestRunner.Api.CallbacksHolder
@@ -66,7 +66,9 @@ ScriptsOnlyBuild:
     - TMPro.TMP_Style
     - TMPro.VertexGradient
     UnityEngine.CoreModule:
+    - UnityEngine.Events.ArgumentCache
     - UnityEngine.Events.PersistentCallGroup
+    - UnityEngine.Events.PersistentListenerMode
     UnityEngine.TextCoreFontEngineModule:
     - UnityEngine.TextCore.FaceInfo
     - UnityEngine.TextCore.Glyph
@@ -80,9 +82,15 @@ ScriptsOnlyBuild:
     - UnityEngine.UI.MaskableGraphic/CullStateChangedEvent
     - UnityEngine.UI.Navigation
     - UnityEngine.UI.SpriteState
-  methodsToPreserve: []
+  methodsToPreserve:
+  - assembly: Assembly-CSharp
+    fullTypeName: MainMenu
+    methodName: StartGame
+  - assembly: Assembly-CSharp
+    fullTypeName: MainMenu
+    methodName: ExitGame
   sceneClasses:
-    Assets/Scenes/Game - Copy.unity:
+    Assets/Scenes/GameScene.unity:
     - Class: 1
       Script: {instanceID: 0}
     - Class: 4
@@ -111,6 +119,10 @@ ScriptsOnlyBuild:
       Script: {instanceID: 0}
     - Class: 81
       Script: {instanceID: 0}
+    - Class: 82
+      Script: {instanceID: 0}
+    - Class: 83
+      Script: {instanceID: 0}
     - Class: 89
       Script: {instanceID: 0}
     - Class: 91
@@ -128,47 +140,51 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 16728}
     - Class: 114
-      Script: {instanceID: 17214}
+      Script: {instanceID: 17216}
     - Class: 114
-      Script: {instanceID: 17344}
+      Script: {instanceID: 17346}
     - Class: 114
-      Script: {instanceID: 17480}
+      Script: {instanceID: 17482}
     - Class: 114
-      Script: {instanceID: 17790}
+      Script: {instanceID: 17792}
     - Class: 114
-      Script: {instanceID: 17802}
+      Script: {instanceID: 17804}
     - Class: 114
-      Script: {instanceID: 18018}
+      Script: {instanceID: 18020}
     - Class: 114
-      Script: {instanceID: 18992}
+      Script: {instanceID: 18200}
     - Class: 114
-      Script: {instanceID: 19188}
+      Script: {instanceID: 19002}
     - Class: 114
-      Script: {instanceID: 19252}
+      Script: {instanceID: 19198}
     - Class: 114
-      Script: {instanceID: 19368}
+      Script: {instanceID: 19264}
     - Class: 114
-      Script: {instanceID: 19380}
+      Script: {instanceID: 19382}
     - Class: 114
-      Script: {instanceID: 19488}
+      Script: {instanceID: 19394}
     - Class: 114
-      Script: {instanceID: 19640}
+      Script: {instanceID: 19502}
     - Class: 114
-      Script: {instanceID: 20400}
+      Script: {instanceID: 19654}
     - Class: 114
-      Script: {instanceID: 20592}
+      Script: {instanceID: 20420}
     - Class: 114
-      Script: {instanceID: 20668}
+      Script: {instanceID: 20616}
     - Class: 114
-      Script: {instanceID: 20986}
+      Script: {instanceID: 20692}
     - Class: 114
-      Script: {instanceID: 21152}
+      Script: {instanceID: 21012}
     - Class: 114
-      Script: {instanceID: 21494}
+      Script: {instanceID: 21178}
     - Class: 114
-      Script: {instanceID: 21868}
+      Script: {instanceID: 21520}
     - Class: 114
-      Script: {instanceID: 22656}
+      Script: {instanceID: 21896}
+    - Class: 114
+      Script: {instanceID: 22688}
+    - Class: 114
+      Script: {instanceID: 34582}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 128
@@ -228,6 +244,12 @@ ScriptsOnlyBuild:
     assemblyName: UnityEngine.UI
     namespaceName: UnityEngine.UI
     className: Image
+  - hash:
+      serializedVersion: 2
+      Hash: 898b97f171e5338bec076bad9a2ef448
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_SoundFade
   - hash:
       serializedVersion: 2
       Hash: f45600bcc886206dd55a3208474aad61
@@ -476,10 +498,22 @@ ScriptsOnlyBuild:
     className: UnityOnDropdownValueChangedMessageListener
   - hash:
       serializedVersion: 2
+      Hash: e9c11c95b105eebb2fe13c3726f6803b
+    assemblyName: Assembly-CSharp
+    namespaceName: SlidingPuzzle
+    className: ChiefDialogue
+  - hash:
+      serializedVersion: 2
       Hash: 1d830bc5cfaaf24301dffea2877f4bea
     assemblyName: Assembly-CSharp
     namespaceName: TMPro.Examples
     className: VertexShakeA
+  - hash:
+      serializedVersion: 2
+      Hash: cd1c25831fcd9271994b16cf557d606d
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: ToD_Debug
   - hash:
       serializedVersion: 2
       Hash: a1ac4c50e55874de16eee3db71aa9784
@@ -516,6 +550,12 @@ ScriptsOnlyBuild:
     assemblyName: Unity.VisualScripting.Core
     namespaceName: Unity.VisualScripting
     className: UnityOnMouseDragMessageListener
+  - hash:
+      serializedVersion: 2
+      Hash: 5b244425be387f802175c0e50e4d5389
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Debug
   - hash:
       serializedVersion: 2
       Hash: d7c8092511063e0dae8106bfc8ed63dd
@@ -620,7 +660,7 @@ ScriptsOnlyBuild:
     className: VertexShakeB
   - hash:
       serializedVersion: 2
-      Hash: 94cba74d328b9539d7deaeb85e2172ce
+      Hash: 72467d76f95344d7e831c46fc5b68851
     assemblyName: Assembly-CSharp
     namespaceName: SlidingPuzzle
     className: PuzzleInteractable
@@ -716,7 +756,7 @@ ScriptsOnlyBuild:
     className: TMP_Settings
   - hash:
       serializedVersion: 2
-      Hash: 10814803b9b3c2ee7c36161be7819e7e
+      Hash: 7a0258803368010a56ca661d64bd53c2
     assemblyName: Assembly-CSharp
     namespaceName: SlidingPuzzle
     className: MaskRewardSystem
@@ -740,7 +780,7 @@ ScriptsOnlyBuild:
     className: DictionaryAsset
   - hash:
       serializedVersion: 2
-      Hash: 412ba88e671d57ef35978e0dfd540bba
+      Hash: 070906facf58ae43ea037e2955b0236f
     assemblyName: Assembly-CSharp
     namespaceName: SlidingPuzzle
     className: PuzzleGameManager
@@ -776,6 +816,12 @@ ScriptsOnlyBuild:
     className: TMPro_InstructionOverlay
   - hash:
       serializedVersion: 2
+      Hash: c36227a9f90fbb2635f78c3420a7da57
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Base
+  - hash:
+      serializedVersion: 2
       Hash: a75a568ce902366f4e82fc98ca6108f5
     assemblyName: Assembly-CSharp
     namespaceName: TMPro.Examples
@@ -804,6 +850,18 @@ ScriptsOnlyBuild:
     assemblyName: Assembly-CSharp
     namespaceName: TMPro.Examples
     className: TMP_TextInfoDebugTool
+  - hash:
+      serializedVersion: 2
+      Hash: b78440a9c06233e49df8c054dbdd89bf
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Sun
+  - hash:
+      serializedVersion: 2
+      Hash: c47b22c074ed8b1474f5897a190689c6
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Controller
   - hash:
       serializedVersion: 2
       Hash: 0b63f6d3335e11939ce8790b904c8691
@@ -930,6 +988,12 @@ ScriptsOnlyBuild:
     assemblyName: Unity.TextMeshPro
     namespaceName: TMPro
     className: TMP_FontAsset
+  - hash:
+      serializedVersion: 2
+      Hash: 024fd7567f4d607104e1373e350382f6
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: ToD_Base
   - hash:
       serializedVersion: 2
       Hash: 0dd14e314956b0d0d83ffcffe60aa46f
@@ -1088,6 +1152,12 @@ ScriptsOnlyBuild:
     className: BeforeAfterTestCommandState
   - hash:
       serializedVersion: 2
+      Hash: 599d390114578768b1229cb06d9b7ca8
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Thunderstorm
+  - hash:
+      serializedVersion: 2
       Hash: 8bbce9932f67ad8e7f4eefec87800f94
     assemblyName: Unity.TextMeshPro
     namespaceName: TMPro
@@ -1148,6 +1218,12 @@ ScriptsOnlyBuild:
     className: UnityOnCollisionExitMessageListener
   - hash:
       serializedVersion: 2
+      Hash: fd9a75490a1d9f24af3316642377ea06
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Snow
+  - hash:
+      serializedVersion: 2
       Hash: d2ecd94550edf1b56aff07b1f4e41c57
     assemblyName: Unity.VisualScripting.Core
     namespaceName: Unity.VisualScripting
@@ -1182,6 +1258,12 @@ ScriptsOnlyBuild:
     assemblyName: UnityEngine.UI
     namespaceName: UnityEngine.UI
     className: PositionAsUV1
+  - hash:
+      serializedVersion: 2
+      Hash: 5835964a6a72e5fc83bb47f8f9403735
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Rain
   - hash:
       serializedVersion: 2
       Hash: 6a0b5b415c00f783202fd1ae2d556cb2
@@ -1268,7 +1350,7 @@ ScriptsOnlyBuild:
     className: ScrollRect
   - hash:
       serializedVersion: 2
-      Hash: f9a91a36dd795ee349c562b147f0ee53
+      Hash: aa528e74bfed6ee48c4e780eaeb999c7
     assemblyName: Assembly-CSharp
     namespaceName: SlidingPuzzle
     className: PuzzleConfiguration
@@ -1340,6 +1422,12 @@ ScriptsOnlyBuild:
     className: TeleType
   - hash:
       serializedVersion: 2
+      Hash: 1dee599a9cc6e61729d6ed57fadfaea4
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: ToD_Clock
+  - hash:
+      serializedVersion: 2
       Hash: 9fb1c3ab48b256d508ecddd967f98652
     assemblyName: Assembly-CSharp
     namespaceName: TMPro.Examples
@@ -1388,11 +1476,23 @@ ScriptsOnlyBuild:
     className: UnityOnTriggerExit2DMessageListener
   - hash:
       serializedVersion: 2
+      Hash: f9650742f78b2dba1082c671199360e0
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: Weather_Cloudy
+  - hash:
+      serializedVersion: 2
       Hash: 8b15e35eb98fc258ec2e839df7c3c9b0
     assemblyName: Unity.VisualScripting.Core
     namespaceName: Unity.VisualScripting
     className: UnityOnSliderValueChangedMessageListener
+  - hash:
+      serializedVersion: 2
+      Hash: bb93fb770b7dc7f0af31f8d68524dc56
+    assemblyName: Assembly-CSharp
+    namespaceName: 
+    className: MainMenu
   platform: 19
   scenePathNames:
-  - Assets/Scenes/Game - Copy.unity
-  playerPath: C:/Users/GOLD COMPUTERS/Desktop/Save Wakanda/Save Wakanda.exe
+  - Assets/Scenes/GameScene.unity
+  playerPath: C:/Users/GOLD COMPUTERS/Desktop/Save Wakanda/Save Wakanda/Save Wakanda.exe
