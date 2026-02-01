@@ -3,7 +3,7 @@ using UnityEngine;
 namespace SlidingPuzzle
 {
     /// <summary>
-    /// ScriptableObject to configure individual puzzles
+    /// ScriptableObject to configure individual puzzles.
     /// Create via: Assets > Create > Sliding Puzzle > Puzzle Config
     /// </summary>
     [CreateAssetMenu(fileName = "PuzzleConfig", menuName = "Sliding Puzzle/Puzzle Config")]
@@ -21,17 +21,11 @@ namespace SlidingPuzzle
         [Tooltip("The mask prefab to spawn when puzzle is solved")]
         public GameObject maskPrefab;
         
-        [Header("Ghost Defeat")]
-        [Tooltip("Reference to the ghost GameObject - leave empty to find by tag 'Ghost' at runtime")]
-        public GameObject ghostObject;
+        [Header("Ghost")]
+        [Tooltip("The ghost prefab to Instantiate at the spawn point")]
+        public GameObject ghostPrefab;
         
-        [Tooltip("Tag to find ghost if not manually assigned")]
-        public string ghostTag = "Ghost";
-        
-        [Tooltip("Animator parameter name to trigger defeat animation")]
-        public string defeatAnimationTrigger = "Defeat";
-        
-        [Tooltip("Delay before destroying ghost after defeat animation starts")]
-        public float ghostDestroyDelay = 3f;
+        [Tooltip("How long the ghost floats upward before disappearing")]
+        public float ghostDefeatDuration = 3f;
     }
 }

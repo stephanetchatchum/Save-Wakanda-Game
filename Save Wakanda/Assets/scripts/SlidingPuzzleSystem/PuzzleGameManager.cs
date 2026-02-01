@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace SlidingPuzzle
 {
     /// <summary>
-    /// Main manager that orchestrates the entire puzzle game flow
-    /// Handles multiple puzzles, player state, and progression
+    /// Main manager that orchestrates the entire puzzle game flow.
+    /// Handles multiple puzzles, player state, progression, and end-game.
     /// </summary>
     public class PuzzleGameManager : MonoBehaviour
     {
@@ -18,6 +18,7 @@ namespace SlidingPuzzle
         public PuzzleUIController puzzleUIController;
         public MaskRewardSystem maskRewardSystem;
         public GhostCounter ghostCounter;
+        public ChiefDialogue chiefDialogue;
         
         [Header("UI")]
         [Tooltip("The canvas/panel that contains the puzzle UI")]
@@ -49,22 +50,24 @@ namespace SlidingPuzzle
         
         void Start()
         {
-            // Initial setup
             if (puzzleUIPanel != null)
             {
                 puzzleUIPanel.SetActive(false);
             }
             
-            // Store main camera
             mainCamera = Camera.main;
             
-            // Setup ghost counter
             if (ghostCounter != null)
             {
                 ghostCounter.SetTotalGhosts(puzzleConfigs.Count);
             }
             
-            // Validate setup
+            // Spawn all ghosts at their spawn points at game start
+            if (maskRewardSystem != null)
+            {
+                maskRewardSystem.SpawnAllGhosts(puzzleConfigs);
+            }
+            
             ValidateSetup();
         }
         
@@ -107,7 +110,7 @@ namespace SlidingPuzzle
                 playerController.enabled = false;
             }
             
-            // Cursor settings
+            // Cursor
             if (showCursorDuringPuzzle)
             {
                 Cursor.lockState = CursorLockMode.None;
@@ -122,8 +125,6 @@ namespace SlidingPuzzle
             }
             
             isPuzzleActive = true;
-            
-            // Subscribe to puzzle solved event
             puzzleManager.OnPuzzleSolved += OnPuzzleSolved;
         }
         
@@ -134,17 +135,10 @@ namespace SlidingPuzzle
         {
             Debug.Log("Puzzle solved! Awarding mask...");
             
-            // Award the mask
-            maskRewardSystem.AwardMask();
+            // Award mask — ghost defeat sequence runs in background
+            maskRewardSystem.AwardMask(currentPuzzleIndex);
             
-            // Close UI AFTER the full sequence finishes:
-            // timeBeforeExplosion (2s) + explosionDuration (1s) + ghostDestroyDelay (3s) + small buffer
-            float totalSequenceTime = maskRewardSystem.timeBeforeExplosion 
-                                    + maskRewardSystem.explosionDuration 
-                                    + maskRewardSystem.currentConfig.ghostDestroyDelay 
-                                    + 0.5f;
-            
-            Debug.Log($"Ghost sequence will take {totalSequenceTime}s — closing UI after that");
+            // Close UI after 1s so player gets back to the 3D scene to watch the ghost
             Invoke(nameof(ClosePuzzleUI), 1f);
         }
         
@@ -155,23 +149,21 @@ namespace SlidingPuzzle
         {
             Debug.Log("Closing puzzle UI and restoring player controls...");
             
-            // Hide UI
             if (puzzleUIPanel != null)
             {
                 puzzleUIPanel.SetActive(false);
             }
             
-            // Unlock player - CRITICAL FIX
+            // Unlock player
             if (lockPlayerDuringPuzzle && playerController != null)
             {
                 playerController.enabled = true;
                 Debug.Log("Player controller re-enabled");
             }
             
-            /* Restore cursor - back to gameplay mode
+            // Restore cursor
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-            Debug.Log("Cursor locked and hidden");*/
             
             // Restore camera
             if (puzzleCamera != null && mainCamera != null)
@@ -188,7 +180,7 @@ namespace SlidingPuzzle
                 puzzleManager.OnPuzzleSolved -= OnPuzzleSolved;
             }
             
-            // Move to next puzzle
+            // Advance to next puzzle
             currentPuzzleIndex++;
             
             if (currentPuzzleIndex >= puzzleConfigs.Count)
@@ -203,12 +195,49 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
-        /// Called when all puzzles are completed
+        /// Called when all puzzles are done — triggers chief dialogue
         /// </summary>
         private void OnAllPuzzlesCompleted()
         {
-            Debug.Log("🎉 All puzzles solved! Game complete!");
-            // Add any end-game logic here
+            Debug.Log("All puzzles solved! Triggering chief dialogue...");
+            
+            if (chiefDialogue != null)
+            {
+                chiefDialogue.TriggerEndDialogue();
+            }
+        }
+        
+        /// <summary>
+        /// Restart the entire game from scratch.
+        /// Called by ChiefDialogue "Start Over" button.
+        /// </summary>
+        public void RestartGame()
+        {
+            Debug.Log("Restarting game...");
+            
+            // Reset puzzle index
+            currentPuzzleIndex = 0;
+            isPuzzleActive = false;
+            
+            // Reset ghost counter
+            if (ghostCounter != null)
+            {
+                ghostCounter.ResetCounter();
+            }
+            
+            // Re-spawn all ghosts
+            if (maskRewardSystem != null)
+            {
+                maskRewardSystem.SpawnAllGhosts(puzzleConfigs);
+            }
+            
+            // Reset each puzzle so they can be solved again
+            if (puzzleManager != null)
+            {
+                puzzleManager.ResetAllPuzzles();
+            }
+            
+            Debug.Log("Game restarted. All ghosts re-spawned.");
         }
         
         /// <summary>
@@ -223,22 +252,23 @@ namespace SlidingPuzzle
                 Debug.LogError("PuzzleManager reference missing!");
                 isValid = false;
             }
-            
             if (puzzleUIController == null)
             {
                 Debug.LogError("PuzzleUIController reference missing!");
                 isValid = false;
             }
-            
             if (maskRewardSystem == null)
             {
                 Debug.LogError("MaskRewardSystem reference missing!");
                 isValid = false;
             }
-            
             if (puzzleConfigs.Count == 0)
             {
                 Debug.LogWarning("No puzzle configurations added!");
+            }
+            if (chiefDialogue == null)
+            {
+                Debug.LogWarning("ChiefDialogue not assigned — end-game dialogue won't trigger.");
             }
             
             if (isValid)
@@ -247,9 +277,6 @@ namespace SlidingPuzzle
             }
         }
         
-        /// <summary>
-        /// Debug function to skip to next puzzle
-        /// </summary>
         [ContextMenu("Skip Current Puzzle")]
         public void DebugSkipPuzzle()
         {
@@ -259,18 +286,10 @@ namespace SlidingPuzzle
             }
         }
         
-        /// <summary>
-        /// Debug function to reset all puzzles
-        /// </summary>
         [ContextMenu("Reset All Puzzles")]
         public void DebugResetPuzzles()
         {
-            currentPuzzleIndex = 0;
-            if (isPuzzleActive)
-            {
-                ClosePuzzleUI();
-            }
-            Debug.Log("All puzzles reset");
+            RestartGame();
         }
     }
 }

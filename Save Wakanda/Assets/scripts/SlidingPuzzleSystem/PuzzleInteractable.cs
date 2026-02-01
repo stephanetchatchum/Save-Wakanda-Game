@@ -3,8 +3,9 @@ using UnityEngine;
 namespace SlidingPuzzle
 {
     /// <summary>
-    /// Attach this to the puzzle table or any 3D object in the scene
-    /// Handles player interaction to start the puzzle
+    /// Attach this to the puzzle table or any 3D object in the scene.
+    /// Handles player proximity detection and starts the puzzle on interaction.
+    /// Auto-creates a "Press E" prompt above the object — no manual UI setup needed.
     /// </summary>
     public class PuzzleInteractable : MonoBehaviour
     {
@@ -13,94 +14,133 @@ namespace SlidingPuzzle
         public PuzzleGameManager gameManager;
         
         [Header("Interaction Settings")]
-        [Tooltip("Interaction key")]
+        [Tooltip("Key to press to start the puzzle")]
         public KeyCode interactKey = KeyCode.E;
         
-        [Tooltip("Max distance to interact")]
+        [Tooltip("How close the player needs to be to interact")]
         public float interactionRange = 3f;
         
-        [Tooltip("Layer mask for player detection (optional)")]
-        public LayerMask playerLayer;
+        [Header("Prompt Settings")]
+        [Tooltip("Text shown when player is close enough")]
+        public string promptText = "Press E to play";
         
-        [Header("UI Feedback")]
-        [Tooltip("Optional UI text to show interaction prompt")]
-        public GameObject interactionPrompt;
+        [Tooltip("Height the prompt floats above this object")]
+        public float promptHeight = 1.5f;
         
-        [Tooltip("Text to display when player is in range")]
-        public string promptText = "Press E to play puzzle";
+        [Tooltip("Size of the prompt text")]
+        public float promptFontSize = 0.3f;
         
+        [Tooltip("Color of the prompt text")]
+        public Color promptColor = Color.white;
+        
+        // Internal state
         private Transform playerTransform;
         private bool playerInRange = false;
+        private bool previousPlayerInRange = false;
+        
+        // Auto-created prompt
+        private GameObject promptObject;
+        private TextMesh promptMesh;
+        
+        [Header("Audio")]
+        [Tooltip("Audio source for playing sounds")]
+        public AudioSource audioSource;
+        
+        [Tooltip("Sound to play when player enters range")]
+        public AudioClip enterRangeSound;
         
         void Start()
         {
-            // Find player by tag (adjust as needed for your setup)
+            // Find player
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
                 playerTransform = player.transform;
             }
-            
-            if (interactionPrompt != null)
+            else
             {
-                interactionPrompt.SetActive(false);
+                Debug.LogWarning("PuzzleInteractable: No Player found! Make sure your player has the 'Player' tag.");
             }
+            
+            // Auto-create the prompt text above this object
+            CreatePrompt();
+            
+            // Get audio source
+            if (audioSource == null)
+            {
+                audioSource = GetComponent<AudioSource>();
+            }
+        }
+        
+        /// <summary>
+        /// Creates a 3D text prompt above the puzzle table automatically.
+        /// No need to manually create any UI — it builds itself.
+        /// </summary>
+        private void CreatePrompt()
+        {
+            promptObject = new GameObject("InteractionPrompt");
+            promptObject.transform.SetParent(transform);
+            promptObject.transform.localPosition = Vector3.up * promptHeight;
+            
+            promptMesh = promptObject.AddComponent<TextMesh>();
+            promptMesh.text = promptText;
+            promptMesh.fontSize = 100;
+            promptMesh.characterSize = promptFontSize / 100f;
+            promptMesh.alignment = TextAlignment.Center;
+            promptMesh.color = promptColor;
+            
+            // Hidden until player is close
+            promptObject.SetActive(false);
         }
         
         void Update()
         {
             if (playerTransform == null) return;
             
-            // Check distance to player
+            // Distance check
             float distance = Vector3.Distance(transform.position, playerTransform.position);
             playerInRange = distance <= interactionRange;
             
-            // Show/hide prompt
-            if (interactionPrompt != null)
+            // Play/stop sound based on playerInRange
+            if (!previousPlayerInRange && playerInRange && enterRangeSound != null && audioSource != null)
             {
-                interactionPrompt.SetActive(playerInRange && !gameManager.IsPuzzleActive);
+                audioSource.clip = enterRangeSound;
+                audioSource.loop = true;
+                audioSource.Play();
+            }
+            else if (previousPlayerInRange && !playerInRange && audioSource != null)
+            {
+                audioSource.Stop();
+            }
+            previousPlayerInRange = playerInRange;
+            
+            // Show/hide prompt
+            if (promptObject != null)
+            {
+                bool shouldShow = playerInRange && (gameManager == null || !gameManager.IsPuzzleActive);
+                promptObject.SetActive(shouldShow);
+                
+                // Make prompt always face the player (billboard)
+                if (shouldShow)
+                {
+                    promptObject.transform.LookAt(playerTransform);
+                    promptObject.transform.Rotate(0f, 180f, 0f);
+                }
             }
             
-            // Handle interaction
-            if (playerInRange && Input.GetKeyDown(interactKey) && !gameManager.IsPuzzleActive)
+            // Interact on key press
+            if (playerInRange && Input.GetKeyDown(interactKey))
             {
-                StartPuzzle();
+                if (gameManager != null && !gameManager.IsPuzzleActive)
+                {
+                    gameManager.StartPuzzle(transform.position);
+                    Debug.Log("Puzzle started!");
+                }
             }
         }
         
         /// <summary>
-        /// Start the puzzle interaction
-        /// </summary>
-        private void StartPuzzle()
-        {
-            if (gameManager != null)
-            {
-                gameManager.StartPuzzle(transform.position);
-                Debug.Log("Puzzle started!");
-            }
-        }
-        
-        /// <summary>
-        /// Alternative: Use trigger collider for interaction
-        /// </summary>
-        void OnTriggerEnter(Collider other)
-        {
-            if (playerLayer == (playerLayer | (1 << other.gameObject.layer)))
-            {
-                playerInRange = true;
-            }
-        }
-        
-        void OnTriggerExit(Collider other)
-        {
-            if (playerLayer == (playerLayer | (1 << other.gameObject.layer)))
-            {
-                playerInRange = false;
-            }
-        }
-        
-        /// <summary>
-        /// Visual debug in editor
+        /// Debug: draw the interaction range sphere in the editor
         /// </summary>
         void OnDrawGizmosSelected()
         {

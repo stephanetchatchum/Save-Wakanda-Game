@@ -27,10 +27,14 @@ namespace SlidingPuzzle
         private float startTime = 0f;
         private float solveTime = 0f;
         
+        // Track which puzzles have been completed (survives across puzzle switches)
+        private HashSet<int> completedPuzzles = new HashSet<int>();
+        private int currentPuzzleIndex = -1;
+        
         // Events
         public System.Action OnPuzzleSolved;
         public System.Action<int[,]> OnTilesChanged;
-        public System.Action<int, float> OnStatsUpdated; // moveCount, elapsedTime
+        public System.Action<int, float> OnStatsUpdated;
         
         private bool isPuzzleSolved = false;
         
@@ -49,7 +53,6 @@ namespace SlidingPuzzle
                 SolvePuzzle();
             }
             
-            // Update stats every frame while puzzle is active
             if (!isPuzzleSolved && tileGrid != null)
             {
                 OnStatsUpdated?.Invoke(moveCount, Time.time - startTime);
@@ -59,21 +62,19 @@ namespace SlidingPuzzle
         /// <summary>
         /// Initialize a new puzzle
         /// </summary>
-        public void InitializePuzzle(PuzzleConfiguration config)
+        public void InitializePuzzle(PuzzleConfiguration config, int puzzleIndex = -1)
         {
             currentPuzzle = config;
+            currentPuzzleIndex = puzzleIndex;
             gridSize = config.gridSize;
             isPuzzleSolved = false;
             
-            // Reset stats
             moveCount = 0;
             startTime = Time.time;
             solveTime = 0f;
             
-            // Create the grid
             tileGrid = new int[gridSize, gridSize];
             
-            // Fill with sequential numbers (0 represents empty space)
             int number = 1;
             for (int y = 0; y < gridSize; y++)
             {
@@ -81,7 +82,7 @@ namespace SlidingPuzzle
                 {
                     if (y == gridSize - 1 && x == gridSize - 1)
                     {
-                        tileGrid[x, y] = 0; // Empty tile at bottom-right
+                        tileGrid[x, y] = 0;
                         emptyTilePos = new Vector2Int(x, y);
                     }
                     else
@@ -91,9 +92,7 @@ namespace SlidingPuzzle
                 }
             }
             
-            // Shuffle the puzzle
             ShufflePuzzle();
-            
             OnTilesChanged?.Invoke(tileGrid);
             
             Debug.Log($"Puzzle initialized: {gridSize}x{gridSize} grid");
@@ -106,35 +105,32 @@ namespace SlidingPuzzle
         {
             if (isPuzzleSolved) return false;
             
-            // Check if this tile is adjacent to the empty space
             int dx = Mathf.Abs(x - emptyTilePos.x);
             int dy = Mathf.Abs(y - emptyTilePos.y);
             
             bool isAdjacent = (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
-            
             if (!isAdjacent) return false;
             
-            // Swap the tile with the empty space
             tileGrid[emptyTilePos.x, emptyTilePos.y] = tileGrid[x, y];
             tileGrid[x, y] = 0;
             emptyTilePos = new Vector2Int(x, y);
             
-            // Increment move counter
             moveCount++;
-            
             OnTilesChanged?.Invoke(tileGrid);
             
-            // Check for win condition
             if (CheckWinCondition())
             {
                 isPuzzleSolved = true;
                 solveTime = Time.time - startTime;
+                
+                if (currentPuzzleIndex >= 0)
+                    completedPuzzles.Add(currentPuzzleIndex);
+                
                 Debug.Log($"Puzzle Solved in {moveCount} moves and {solveTime:F2} seconds!");
                 OnPuzzleSolved?.Invoke();
             }
             else
             {
-                // Update stats
                 OnStatsUpdated?.Invoke(moveCount, Time.time - startTime);
             }
             
@@ -146,7 +142,7 @@ namespace SlidingPuzzle
         /// </summary>
         private void ShufflePuzzle()
         {
-            int shuffleMoves = gridSize * gridSize * 50; // More moves for better shuffle
+            int shuffleMoves = gridSize * gridSize * 50;
             
             for (int i = 0; i < shuffleMoves; i++)
             {
@@ -154,8 +150,6 @@ namespace SlidingPuzzle
                 if (validMoves.Count > 0)
                 {
                     Vector2Int randomMove = validMoves[Random.Range(0, validMoves.Count)];
-                    
-                    // Swap without triggering events
                     tileGrid[emptyTilePos.x, emptyTilePos.y] = tileGrid[randomMove.x, randomMove.y];
                     tileGrid[randomMove.x, randomMove.y] = 0;
                     emptyTilePos = randomMove;
@@ -165,19 +159,15 @@ namespace SlidingPuzzle
             Debug.Log($"Puzzle shuffled with {shuffleMoves} moves");
         }
         
-        /// <summary>
-        /// Get all tiles adjacent to the empty space
-        /// </summary>
         private List<Vector2Int> GetValidMoves()
         {
             List<Vector2Int> moves = new List<Vector2Int>();
             
-            // Check all four directions
             Vector2Int[] directions = {
-                new Vector2Int(0, 1),  // Up
-                new Vector2Int(0, -1), // Down
-                new Vector2Int(1, 0),  // Right
-                new Vector2Int(-1, 0)  // Left
+                new Vector2Int(0, 1),
+                new Vector2Int(0, -1),
+                new Vector2Int(1, 0),
+                new Vector2Int(-1, 0)
             };
             
             foreach (var dir in directions)
@@ -194,9 +184,6 @@ namespace SlidingPuzzle
             return moves;
         }
         
-        /// <summary>
-        /// Check if the puzzle is in the solved state
-        /// </summary>
         private bool CheckWinCondition()
         {
             int expectedNumber = 1;
@@ -205,7 +192,6 @@ namespace SlidingPuzzle
             {
                 for (int x = 0; x < gridSize; x++)
                 {
-                    // Last tile should be 0 (empty)
                     if (y == gridSize - 1 && x == gridSize - 1)
                     {
                         return tileGrid[x, y] == 0;
@@ -224,7 +210,7 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
-        /// Debug function to instantly solve the puzzle
+        /// Debug: instantly solve the puzzle
         /// </summary>
         private void SolvePuzzle()
         {
@@ -247,7 +233,22 @@ namespace SlidingPuzzle
             
             OnTilesChanged?.Invoke(tileGrid);
             isPuzzleSolved = true;
+            
+            if (currentPuzzleIndex >= 0)
+                completedPuzzles.Add(currentPuzzleIndex);
+            
             OnPuzzleSolved?.Invoke();
+        }
+        
+        /// <summary>
+        /// Reset all puzzle completion state. Called on game restart.
+        /// </summary>
+        public void ResetAllPuzzles()
+        {
+            completedPuzzles.Clear();
+            isPuzzleSolved = false;
+            currentPuzzleIndex = -1;
+            Debug.Log("All puzzles reset.");
         }
     }
 }

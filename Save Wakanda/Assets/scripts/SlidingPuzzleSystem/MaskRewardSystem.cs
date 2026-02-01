@@ -1,10 +1,12 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace SlidingPuzzle
 {
     /// <summary>
-    /// Handles mask spawning and ghost defeat sequence
+    /// Handles ghost spawning, mask reward, and ghost defeat sequence.
+    /// Ghosts are Instantiated at game start so they can be safely Destroyed on defeat.
     /// </summary>
     public class MaskRewardSystem : MonoBehaviour
     {
@@ -21,6 +23,14 @@ namespace SlidingPuzzle
         
         [Tooltip("Forward offset from player")]
         public float spawnForwardOffset = 1f;
+        
+        [Header("Ghost Defeat Motion")]
+        [Tooltip("How high the ghost floats up before disappearing")]
+        public float ghostFloatHeight = 5f;
+        
+        [Header("Ghost Spawn Points")]
+        [Tooltip("One spawn point per puzzle, in the same order as puzzleConfigs on PuzzleGameManager. Drag empty GameObjects from the Hierarchy here.")]
+        public List<GameObject> ghostSpawnPoints = new List<GameObject>();
         
         [Header("Effects (Optional)")]
         public ParticleSystem spawnEffect;
@@ -40,6 +50,9 @@ namespace SlidingPuzzle
         private GameObject spawnedMask;
         private bool maskAwarded = false;
         
+        // Tracks every ghost we spawned, keyed by puzzle index
+        private Dictionary<int, GameObject> spawnedGhosts = new Dictionary<int, GameObject>();
+        
         void Awake()
         {
             audioSource = GetComponent<AudioSource>();
@@ -50,9 +63,44 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
+        /// Called once at game start. Spawns all ghosts at their spawn points.
+        /// Because these are Instantiated copies, we can safely Destroy them later.
+        /// </summary>
+        public void SpawnAllGhosts(List<PuzzleConfiguration> configs)
+        {
+            for (int i = 0; i < configs.Count; i++)
+            {
+                var config = configs[i];
+                
+                if (config.ghostPrefab == null)
+                {
+                    Debug.LogWarning($"Puzzle {i}: ghostPrefab is null. Skipping ghost spawn.");
+                    continue;
+                }
+                
+                if (i >= ghostSpawnPoints.Count || ghostSpawnPoints[i] == null)
+                {
+                    Debug.LogWarning($"Puzzle {i}: no spawn point at index {i} in ghostSpawnPoints list on MaskRewardSystem. Skipping.");
+                    continue;
+                }
+                
+                GameObject spawnPoint = ghostSpawnPoints[i];
+                
+                GameObject ghost = Instantiate(
+                    config.ghostPrefab,
+                    spawnPoint.transform.position,
+                    spawnPoint.transform.rotation
+                );
+                
+                spawnedGhosts[i] = ghost;
+                Debug.Log($"Spawned ghost for puzzle {i} at {spawnPoint.transform.position}");
+            }
+        }
+        
+        /// <summary>
         /// Award the mask to the player
         /// </summary>
-        public void AwardMask()
+        public void AwardMask(int puzzleIndex)
         {
             if (maskAwarded)
             {
@@ -88,14 +136,12 @@ namespace SlidingPuzzle
             }
             else
             {
-                // Fallback if no player found
                 spawnPos = Camera.main.transform.position + Camera.main.transform.forward * 3f;
                 Debug.LogWarning("Player not found! Spawning mask in front of camera.");
             }
             
             // Spawn the mask
             spawnedMask = Instantiate(currentConfig.maskPrefab, spawnPos, Quaternion.identity);
-            
             Debug.Log($"Mask spawned at {spawnPos}");
             
             // Play spawn effect
@@ -111,49 +157,44 @@ namespace SlidingPuzzle
                 audioSource.PlayOneShot(maskSpawnSound);
             }
             
-            // Trigger explosion sequence after delay
-            StartCoroutine(MaskExplosionSequence(spawnPos));
+            // Trigger explosion sequence
+            StartCoroutine(MaskExplosionSequence(spawnPos, puzzleIndex));
         }
         
         /// <summary>
-        /// Handle mask explosion and ghost defeat
+        /// Handle mask explosion then ghost defeat
         /// </summary>
-        private IEnumerator MaskExplosionSequence(Vector3 maskPosition)
+        private IEnumerator MaskExplosionSequence(Vector3 maskPosition, int puzzleIndex)
         {
-            // Wait before explosion
             yield return new WaitForSeconds(timeBeforeExplosion);
             
             Debug.Log("Mask exploding!");
             
-            // Play explosion effect
             if (explosionEffect != null)
             {
                 explosionEffect.transform.position = maskPosition;
                 explosionEffect.Play();
             }
             
-            // Play explosion sound
             if (explosionSound != null && audioSource != null)
             {
                 audioSource.PlayOneShot(explosionSound);
             }
             
-            // Make mask disappear/destroy with explosion
+            // Scale mask down and destroy it (safe — it's an Instantiate copy)
             if (spawnedMask != null)
             {
-                // Optional: Add a quick scale-down animation
                 StartCoroutine(ScaleDownAndDestroy(spawnedMask, 0.3f));
             }
             
-            // Wait for explosion effect to play
             yield return new WaitForSeconds(explosionDuration);
             
-            // Now trigger ghost defeat
-            StartCoroutine(DefeatGhostSequence());
+            // Defeat the ghost for this puzzle
+            StartCoroutine(DefeatGhostSequence(puzzleIndex));
         }
         
         /// <summary>
-        /// Scale down and destroy object
+        /// Scale down and destroy. Safe to call on Instantiated objects.
         /// </summary>
         private IEnumerator ScaleDownAndDestroy(GameObject obj, float duration)
         {
@@ -172,86 +213,58 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
-        /// Handle the ghost defeat — dissolve fade, no Animator needed
+        /// Ghost defeat: floats upward while scaling to zero, then gets destroyed.
+        /// No materials are touched at all.
         /// </summary>
-        private IEnumerator DefeatGhostSequence()
+        private IEnumerator DefeatGhostSequence(int puzzleIndex)
         {
-            // Try to find ghost if not assigned
-            GameObject ghost = currentConfig.ghostObject;
-            
-            if (ghost == null && !string.IsNullOrEmpty(currentConfig.ghostTag))
+            if (!spawnedGhosts.ContainsKey(puzzleIndex))
             {
-                ghost = GameObject.FindGameObjectWithTag(currentConfig.ghostTag);
-                Debug.Log($"Ghost not assigned in config, searching by tag '{currentConfig.ghostTag}'...");
-            }
-            
-            if (ghost == null)
-            {
-                Debug.LogWarning("No ghost object found! Make sure:");
-                Debug.LogWarning("1. Ghost is assigned in PuzzleConfiguration, OR");
-                Debug.LogWarning("2. Ghost has the '" + currentConfig.ghostTag + "' tag");
+                Debug.LogWarning($"No spawned ghost found for puzzle index {puzzleIndex}!");
+                if (ghostCounter != null) ghostCounter.OnGhostDefeated();
                 yield break;
             }
             
-            Debug.Log($"Ghost defeat sequence starting for: {ghost.name}");
+            GameObject ghost = spawnedGhosts[puzzleIndex];
             
-            // Play defeat sound
+            if (ghost == null)
+            {
+                Debug.LogWarning($"Ghost for puzzle {puzzleIndex} is null!");
+                if (ghostCounter != null) ghostCounter.OnGhostDefeated();
+                yield break;
+            }
+            
+            Debug.Log($"Ghost defeat sequence for puzzle {puzzleIndex}: {ghost.name}");
+            
             if (ghostDefeatSound != null && audioSource != null)
             {
                 audioSource.PlayOneShot(ghostDefeatSound);
             }
             
-            // Grab every renderer on the ghost (handles multi-mesh ghosts)
-            Renderer[] renderers = ghost.GetComponentsInChildren<Renderer>();
-            
-            // Duplicate and prepare every material for transparency
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                Material[] newMats = new Material[renderers[i].materials.Length];
-                for (int m = 0; m < renderers[i].materials.Length; m++)
-                {
-                    // Duplicate so we don't modify the shared/original material
-                    newMats[m] = new Material(renderers[i].materials[m]);
-                    
-                    // Force the material into Transparent render mode
-                    newMats[m].SetFloat("_Mode", 2f);
-                    newMats[m].SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                    newMats[m].SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    newMats[m].SetInt("_ZWrite", 0);
-                    newMats[m].renderQueue = 3000;
-                    newMats[m].DisableKeyword("_ALPHATEST_ON");
-                    newMats[m].EnableKeyword("_ALPHABLEND_ON");
-                }
-                renderers[i].materials = newMats;
-            }
-            
-            // Dissolve: fade alpha from 1 down to 0 over ghostDestroyDelay seconds
-            float dissolveTime = currentConfig.ghostDestroyDelay;
+            // Ghost floats UP and scales to zero simultaneously
+            Vector3 startPos = ghost.transform.position;
+            Vector3 endPos = startPos + Vector3.up * ghostFloatHeight;
+            Vector3 startScale = ghost.transform.localScale;
+            float duration = currentConfig.ghostDefeatDuration;
             float elapsed = 0f;
             
-            while (elapsed < dissolveTime)
+            while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
-                float alpha = 1f - (elapsed / dissolveTime);
+                float t = elapsed / duration;
                 
-                // Apply the new alpha to every material on every renderer
-                for (int i = 0; i < renderers.Length; i++)
-                {
-                    Material[] mats = renderers[i].materials;
-                    for (int m = 0; m < mats.Length; m++)
-                    {
-                        Color c = mats[m].color;
-                        c.a = alpha;
-                        mats[m].color = c;
-                    }
-                }
+                // Float upward
+                ghost.transform.position = Vector3.Lerp(startPos, endPos, t);
+                // Scale to zero
+                ghost.transform.localScale = Vector3.Lerp(startScale, Vector3.zero, t);
                 
-                yield return null; // Wait one frame, then loop
+                yield return null;
             }
             
-            // Ghost is fully transparent now — destroy it
+            // Safe to destroy — this is an Instantiated copy, not a prefab asset
             Destroy(ghost);
-            Debug.Log("Ghost dissolved and destroyed!");
+            spawnedGhosts.Remove(puzzleIndex);
+            Debug.Log($"Ghost {puzzleIndex} defeated and destroyed!");
             
             if (ghostCounter != null)
             {
@@ -260,24 +273,12 @@ namespace SlidingPuzzle
         }
         
         /// <summary>
-        /// Reset the reward system for a new puzzle
-        /// </summary>
-        public void Reset()
-        {
-            if (spawnedMask != null)
-            {
-                Destroy(spawnedMask);
-            }
-            
-            maskAwarded = false;
-        }
-        
-        /// <summary>
         /// Update the configuration at runtime
         /// </summary>
         public void SetConfiguration(PuzzleConfiguration config)
         {
             currentConfig = config;
+            maskAwarded = false;
         }
     }
 }
